@@ -55,12 +55,13 @@ private[snowpark] trait TLiteral extends Expression {
     this
 }
 
-private[snowpark] case class Literal (value: Any, dataTypeOption: Option[DataType]) extends TLiteral
+private[snowpark] case class Literal(value: Any, dataTypeOption: Option[DataType])
+    extends TLiteral
 
 private[snowpark] case class ArrayLiteral(value: Seq[Any]) extends TLiteral {
   val elementsLiterals: Seq[TLiteral] = value.map(Literal(_))
   val dataTypeOption = inferArrayType
-  
+
   private[analyzer] def inferArrayType(): Option[DataType] = {
     elementsLiterals.flatMap(_.dataTypeOption).distinct match {
       case Seq() => None
@@ -74,7 +75,7 @@ private[snowpark] case class ArrayLiteral(value: Seq[Any]) extends TLiteral {
 private[snowpark] case class MapLiteral(value: Map[Any, Any]) extends TLiteral {
   val entriesLiterals = value.map { case (k, v) => Literal(k) -> Literal(v) }
   val dataTypeOption = inferMapType
-  
+
   private[analyzer] def inferMapType(): Option[MapType] = {
     entriesLiterals.keys.flatMap(_.dataTypeOption).toSeq.distinct match {
       case Seq() => None

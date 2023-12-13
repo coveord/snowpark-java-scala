@@ -16,7 +16,7 @@ object DataTypeMapper {
   private val MICROS_PER_MILLIS = 1000L
 
   private[analyzer] def stringToSql(str: String): String =
-  // Escapes all backslashes, single quotes and new line.
+    // Escapes all backslashes, single quotes and new line.
     "'" + str
       .replaceAll("\\\\", "\\\\\\\\")
       .replaceAll("'", "''")
@@ -27,63 +27,61 @@ object DataTypeMapper {
    */
   private[analyzer] def toSql(literal: TLiteral): String = {
     literal match {
-      case Literal(value, dataType) => (value, dataType) match {
-        case (_, None) => "NULL"
-        case (value, Some(dt)) =>
-          (value, dt) match {
-            case (_, _: ArrayType | _: MapType | _: StructType | GeographyType) if value == null =>
-              "NULL"
-            case (_, IntegerType) if value == null => "NULL :: int"
-            case (_, ShortType) if value == null => "NULL :: smallint"
-            case (_, ByteType) if value == null => "NULL :: tinyint"
-            case (_, LongType) if value == null => "NULL :: bigint"
-            case (_, FloatType) if value == null => "NULL :: float"
-            case (_, StringType) if value == null => "NULL :: string"
-            case (_, DoubleType) if value == null => "NULL :: double"
-            case (_, BooleanType) if value == null => "NULL :: boolean"
-            case (_, BinaryType) if value == null => "NULL :: binary"
-            case _ if value == null => "NULL"
-            case (v: String, StringType) => stringToSql(v)
-            case (v: Byte, ByteType) => v + s" :: tinyint"
-            case (v: Short, ShortType) => v + s" :: smallint"
-            case (v: Any, IntegerType) => v + s" :: int"
-            case (v: Long, LongType) => v + s" :: bigint"
-            case (v: Boolean, BooleanType) => s"$v :: boolean"
-            // Float type doesn't have a suffix
-            case (v: Float, FloatType) =>
-              val castedValue = v match {
-                case _ if v.isNaN => "'NaN'"
-                case Float.PositiveInfinity => "'Infinity'"
-                case Float.NegativeInfinity => "'-Infinity'"
-                case _ => s"'$v'"
-              }
-              s"$castedValue :: FLOAT"
-            case (v: Double, DoubleType) =>
-              v match {
-                case _ if v.isNaN => "'NaN'"
-                case Double.PositiveInfinity => "'Infinity'"
-                case Double.NegativeInfinity => "'-Infinity'"
-                case _ => v + "::DOUBLE"
-              }
-            case (v: BigDecimal, t: DecimalType) => v + s" :: ${number(t.precision, t.scale)}"
-            case (v: JBigDecimal, t: DecimalType) => v + s" :: ${number(t.precision, t.scale)}"
-            case (v: Int, DateType) =>
-              s"DATE '${
-                SnowflakeDateTimeFormat
+      case Literal(value, dataType) =>
+        (value, dataType) match {
+          case (_, None) => "NULL"
+          case (value, Some(dt)) =>
+            (value, dt) match {
+              case (_, _: ArrayType | _: MapType | _: StructType | GeographyType)
+                  if value == null =>
+                "NULL"
+              case (_, IntegerType) if value == null => "NULL :: int"
+              case (_, ShortType) if value == null => "NULL :: smallint"
+              case (_, ByteType) if value == null => "NULL :: tinyint"
+              case (_, LongType) if value == null => "NULL :: bigint"
+              case (_, FloatType) if value == null => "NULL :: float"
+              case (_, StringType) if value == null => "NULL :: string"
+              case (_, DoubleType) if value == null => "NULL :: double"
+              case (_, BooleanType) if value == null => "NULL :: boolean"
+              case (_, BinaryType) if value == null => "NULL :: binary"
+              case _ if value == null => "NULL"
+              case (v: String, StringType) => stringToSql(v)
+              case (v: Byte, ByteType) => v + s" :: tinyint"
+              case (v: Short, ShortType) => v + s" :: smallint"
+              case (v: Any, IntegerType) => v + s" :: int"
+              case (v: Long, LongType) => v + s" :: bigint"
+              case (v: Boolean, BooleanType) => s"$v :: boolean"
+              // Float type doesn't have a suffix
+              case (v: Float, FloatType) =>
+                val castedValue = v match {
+                  case _ if v.isNaN => "'NaN'"
+                  case Float.PositiveInfinity => "'Infinity'"
+                  case Float.NegativeInfinity => "'-Infinity'"
+                  case _ => s"'$v'"
+                }
+                s"$castedValue :: FLOAT"
+              case (v: Double, DoubleType) =>
+                v match {
+                  case _ if v.isNaN => "'NaN'"
+                  case Double.PositiveInfinity => "'Infinity'"
+                  case Double.NegativeInfinity => "'-Infinity'"
+                  case _ => v + "::DOUBLE"
+                }
+              case (v: BigDecimal, t: DecimalType) => v + s" :: ${number(t.precision, t.scale)}"
+              case (v: JBigDecimal, t: DecimalType) => v + s" :: ${number(t.precision, t.scale)}"
+              case (v: Int, DateType) =>
+                s"DATE '${SnowflakeDateTimeFormat
                   .fromSqlFormat(Utils.DateInputFormat)
-                  .format(new Date(v * MILLIS_PER_DAY), TimeZone.getTimeZone("GMT"))
-              }'"
-            case (v: Long, TimestampType) =>
-              s"TIMESTAMP '${
-                SnowflakeDateTimeFormat
+                  .format(new Date(v * MILLIS_PER_DAY), TimeZone.getTimeZone("GMT"))}'"
+              case (v: Long, TimestampType) =>
+                s"TIMESTAMP '${SnowflakeDateTimeFormat
                   .fromSqlFormat(Utils.TimestampInputFormat)
-                  .format(new Timestamp(v / MICROS_PER_MILLIS), TimeZone.getDefault, 3)
-              }'"
-            case _ =>
-              throw new UnsupportedOperationException(
-                s"Unsupported datatype by ToSql: ${value.getClass.getName} => $dataType")
-          }
-      }
+                  .format(new Timestamp(v / MICROS_PER_MILLIS), TimeZone.getDefault, 3)}'"
+              case _ =>
+                throw new UnsupportedOperationException(
+                  s"Unsupported datatype by ToSql: ${value.getClass.getName} => $dataType")
+            }
+        }
       case arrayLiteral: ArrayLiteral =>
         if (arrayLiteral.dataTypeOption == Some(BinaryType)) {
           val bytes = arrayLiteral.value.asInstanceOf[Seq[Byte]].toArray
@@ -92,9 +90,12 @@ object DataTypeMapper {
           "ARRAY_CONSTRUCT" + arrayLiteral.elementsLiterals.map(toSql).mkString("(", ", ", ")")
         }
       case mapLiteral: MapLiteral =>
-        "OBJECT_CONSTRUCT" + mapLiteral.entriesLiterals.flatMap { case (keyLiteral, valueLiteral) =>
-          Seq(toSql(keyLiteral), toSql(valueLiteral))
-        }.mkString("(", ", ", ")")
+        "OBJECT_CONSTRUCT" + mapLiteral.entriesLiterals
+          .flatMap {
+            case (keyLiteral, valueLiteral) =>
+              Seq(toSql(keyLiteral), toSql(valueLiteral))
+          }
+          .mkString("(", ", ", ")")
     }
   }
 

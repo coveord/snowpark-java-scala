@@ -443,66 +443,10 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.scoverage</groupId>
-                <artifactId>scoverage-maven-plugin</artifactId>
-                <version>${scoverage.plugin.version}</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>check</goal> <!-- or integration-check -->
-                        </goals>
-                        <phase>prepare-package</phase> <!-- or any other phase -->
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-gpg-plugin</artifactId>
-              <version>1.6</version>
-                <executions>
-                  <execution>
-                    <id>sign-deploy-artifacts</id>
-                    <phase>package</phase>
-                    <goals>
-                      <goal>sign</goal>
-                    </goals>
-                  </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>net.nicoulaj.maven.plugins</groupId>
-                <artifactId>checksum-maven-plugin</artifactId>
-                <version>1.10</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>artifacts</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <algorithms>
-                        <algorithm>SHA-256</algorithm>
-                        <algorithm>md5</algorithm>
-                    </algorithms>
-                </configuration>
-            </plugin>
 
         </plugins>
 
         <!-- disable default maven deploy plugin since we are using gpg:sign-and-deploy-file -->
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <artifactId>maven-deploy-plugin</artifactId>
-                    <configuration>
-                        <skip>true</skip>
-                    </configuration>
-                </plugin>
-            </plugins>
-        </pluginManagement>
     </build>
 
     <profiles>
@@ -516,25 +460,6 @@
           <build>
               <plugins>
                 <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-assembly-plugin</artifactId>
-                    <version>3.3.0</version>
-                    <executions>
-                        <execution>
-                            <id>generate-tar-zip</id>
-                            <phase>none</phase>
-                        </execution>
-                        <execution>
-                            <id>with-dependencies</id>
-                            <phase>none</phase>
-                        </execution>
-                        <execution>
-                            <id>fat-test</id>
-                            <phase>none</phase>
-                        </execution>
-                    </executions>
-                 </plugin>
-                  <plugin>
                       <artifactId>maven-jar-plugin</artifactId>
                       <version>3.1.0</version>
                       <executions>
@@ -551,52 +476,63 @@
                           </execution>
                       </executions>
                   </plugin>
-                  <plugin>
-                      <groupId>org.apache.maven.plugins</groupId>
-                      <artifactId>maven-gpg-plugin</artifactId>
-                      <version>1.6</version>
-                      <executions>
-                          <execution>
-                            <id>sign-deploy-artifacts</id>
-                            <phase>none</phase>
-                          </execution>
-                          <execution>
-                              <id>sign-and-deploy-file</id>
-                              <phase>deploy</phase>
-                              <goals>
-                                  <goal>sign-and-deploy-file</goal>
-                              </goals>
-                              <configuration>
-                                  <file>target/${project.artifactId}-${project.version}.jar</file>
-                                  <repositoryId>ossrh</repositoryId>
-                                  <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
-                                  <pomFile>pom.xml</pomFile>
-                                  <javadoc>target/${project.artifactId}-${project.version}-javadoc.jar</javadoc>
-                                  <keyname>${env.GPG_KEY_ID}</keyname>
-                                  <passphrase>${env.GPG_KEY_PASSPHRASE}</passphrase>
-                              </configuration>
-                          </execution>
-                      </executions>
-                  </plugin>
               </plugins>
           </build>
       </profile>
     </profiles>
 
-    <reporting>
-        <plugins>
-            <plugin>
-                <groupId>org.scoverage</groupId>
-                <artifactId>scoverage-maven-plugin</artifactId>
-                <version>${scoverage.plugin.version}</version>
-                <reportSets>
-                    <reportSet>
-                        <reports>
-                            <report>report-only</report>
-                        </reports>
-                    </reportSet>
-                </reportSets>
-            </plugin>
-        </plugins>
-    </reporting>
+    <repositories>
+    <repository>
+        <snapshots>
+            <enabled>false</enabled>
+        </snapshots>
+        <id>central</id>
+        <name>libs-release</name>
+        <url>https://maven.cloud.coveo.com/artifactory/libs-release</url>
+    </repository>
+    <repository>
+        <releases>
+            <enabled>false</enabled>
+        </releases>
+        <id>snapshots</id>
+        <name>libs-snapshot</name>
+        <url>https://maven.cloud.coveo.com/artifactory/libs-snapshot</url>
+    </repository>
+</repositories>
+<pluginRepositories>
+    <pluginRepository>
+        <snapshots>
+            <enabled>false</enabled>
+        </snapshots>
+        <id>central</id>
+        <name>plugins-release</name>
+        <url>https://maven.cloud.coveo.com/artifactory/plugins-release</url>
+    </pluginRepository>
+    <pluginRepository>
+        <releases>
+            <enabled>false</enabled>
+        </releases>
+        <id>snapshots</id>
+        <name>plugins-snapshot</name>
+        <url>https://maven.cloud.coveo.com/artifactory/plugins-snapshot</url>
+    </pluginRepository>
+</pluginRepositories>
+
+<distributionManagement>
+    <repository>
+        <id>CoveoCloud</id>
+        <name>CoveoCloud-releases</name>
+        <url>https://maven.cloud.coveo.com/artifactory/libs-release-local</url>
+    </repository>
+    <snapshotRepository>
+        <id>CoveoCloud</id>
+        <name>CoveoCloud-snapshots</name>
+        <url>https://maven.cloud.coveo.com/artifactory/libs-snapshot-local</url>
+    </snapshotRepository>
+    <site>
+        <id>${project.artifactId}</id>
+        <name>${project.artifactId}</name>
+        <url>${project.artifactId}/</url>
+    </site>
+</distributionManagement>
 </project>
