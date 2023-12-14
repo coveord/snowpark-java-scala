@@ -586,7 +586,7 @@ package object analyzer {
   private[analyzer] def createTableStatement(
       tableName: String,
       schema: String,
-      replace: Boolean = false,
+      replace: Boolean = true,
       error: Boolean = true,
       tempType: TempType = TempType.Permanent): String =
     _Create + (if (replace) _Or + _Replace else _EmptyString) + tempType + _Table + tableName +
