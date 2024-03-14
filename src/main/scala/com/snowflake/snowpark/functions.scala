@@ -1817,6 +1817,20 @@ object functions {
   def regexp_replace(strExpr: Column, pattern: Column, replacement: Column): Column =
     builtin("regexp_replace")(strExpr, pattern, replacement)
 
+
+  def regexp_extract_all(strExpr: Column,
+                         pattern: Column,
+                         position: Column = lit(1),
+                         occurrence: Column = lit(1),
+                         regex_parameters: Column = lit("c"),
+                         group_num_opt: Option[Column] = None): Column =
+    builtin("regexp_extract_all")((Seq(
+      strExpr,
+      pattern,
+      position,
+      occurrence,
+      regex_parameters) ++ group_num_opt): _*)
+
   /**
    * Removes all occurrences of a specified strExpr,
    * and optionally replaces them with replacement.
