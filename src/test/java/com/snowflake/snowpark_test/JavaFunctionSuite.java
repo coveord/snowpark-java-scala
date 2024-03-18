@@ -1,9 +1,17 @@
 package com.snowflake.snowpark_test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
+
 import com.snowflake.snowpark_java.*;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import org.junit.Test;
 
 public class JavaFunctionSuite extends TestBase {
@@ -16,6 +24,64 @@ public class JavaFunctionSuite extends TestBase {
     Row[] expected = {Row.create(1, 2), Row.create(2, 2)};
     checkAnswer(df1.select(Functions.col("c1"), Functions.col(df2)), expected, false);
     checkAnswer(df1.select(Functions.col("c1"), Functions.toScalar(df2)), expected, false);
+  }
+
+  @Test
+  public void lit() {
+    DataFrame df = getSession().sql("select * from values (1),(2),(3) as T(a)");
+
+    // Empty array is supported
+    Row[] expectedEmptyArray = new Row[3];
+    Arrays.fill(expectedEmptyArray, Row.create("[]"));
+    checkAnswer(df.select(Functions.lit(Collections.EMPTY_LIST)), expectedEmptyArray, false);
+
+    // Empty map is supported
+    Row[] expectedEmptyMap = new Row[3];
+    Arrays.fill(expectedEmptyMap, Row.create("{}"));
+    checkAnswer(df.select(Functions.lit(Collections.EMPTY_MAP)), expectedEmptyMap, false);
+
+    // Array with only bytes should be considered Binary
+    Row[] expectedBinary = new Row[3];
+    Arrays.fill(expectedBinary, Row.create(new byte[] {(byte) 1, (byte) 2, (byte) 3}));
+
+    DataFrame actualBinary = df.select(Functions.lit(List.of((byte) 1, (byte) 2, (byte) 3)));
+
+    checkAnswer(actualBinary, expectedBinary);
+
+    // Array and Map results type are not supported, they are instead always converted to String.
+    // Hence, we need to test by comparing results Strings.
+    Function<Row[], Object[]> rowsToString =
+        (Row[] rows) ->
+            Arrays.stream(rows).map((Row row) -> row.getString(0).replaceAll("\n| ", "")).toArray();
+
+    // Array with different types of elements
+    String[] expectedArrays = new String[3];
+    Arrays.fill(expectedArrays, "[1,\"3\",[\"2023-08-25\"]]");
+
+    Row[] actualArraysRows =
+        df.select(Functions.lit(List.of(1, "3", List.of(Date.valueOf("2023-08-25"))))).collect();
+    Object[] actualArrays = rowsToString.apply(actualArraysRows);
+
+    assertEquals(expectedArrays, actualArrays);
+
+    // One or more map keys are not of the String type. Should throw an exception.
+    assertThrows(
+        scala.NotImplementedError.class, () -> df.select(Functions.lit(Map.of("1", 1, 2, 2))));
+
+    // Map with different type of elements
+    String[] expectedMaps = new String[3];
+    Arrays.fill(expectedMaps, "{\"key1\":{\"nestedKey\":42},\"key2\":\"2023-08-25\"}");
+
+    Row[] actualMapsRows =
+        df.select(
+                Functions.lit(
+                    Map.of(
+                        "key1", Map.of("nestedKey", 42),
+                        "key2", Date.valueOf("2023-08-25"))))
+            .collect();
+    Object[] actualMaps = rowsToString.apply(actualMapsRows);
+
+    assertEquals(expectedMaps, actualMaps);
   }
 
   @Test
@@ -1457,7 +1523,7 @@ public class JavaFunctionSuite extends TestBase {
     Column replacement = Functions.lit("ch");
     Row[] expected1 = {Row.create("cht"), Row.create("chg"), Row.create("chuse")};
     checkAnswer(
-            df.select(Functions.regexp_replace(df.col("a"), pattern, replacement)), expected1, false);
+        df.select(Functions.regexp_replace(df.col("a"), pattern, replacement)), expected1, false);
   }
 
   @Test
